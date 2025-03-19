@@ -16,11 +16,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         enabled: true,
         position: 'bottom-right',
         fontSize: 'medium',
-        textColor: '#FFFFFF',
+        textColor: '#FFFFFF', // Changed to white
         bgColor: '#000000',
         bgOpacity: 0.7,
         alwaysShow: false,
-        hideAfter: 1000
+        hideAfter: 10000 // Changed to 10000ms
     };
 
     // Apply saved settings to form
@@ -41,41 +41,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         hideAfter.disabled = e.target.checked;
     });
 
-    // Add event listener for enable/disable toggle
-    enableDisplay.addEventListener('change', async (e) => {
-        const enabled = e.target.checked;
-        
-        // Update settings in storage
-        const result = await chrome.storage.sync.get('viewportSettings');
-        const currentSettings = result.viewportSettings || settings;
-        
-        const newSettings = {
-            ...currentSettings,
-            enabled: enabled
-        };
-        
-        // Save to storage
-        await chrome.storage.sync.set({ viewportSettings: newSettings });
-        
-        // Notify all content scripts in all tabs
-        const tabs = await chrome.tabs.query({});
-        
-        for (const tab of tabs) {
-            try {
-                if (tab.id) {
-                    chrome.tabs.sendMessage(tab.id, {
-                        type: 'settingsUpdated',
-                        settings: newSettings
-                    }).catch(err => {
-                        // Ignore errors for tabs that don't have the content script running
-                        console.log(`Could not send message to tab ${tab.id}`);
-                    });
-                }
-            } catch (error) {
-                // Ignore errors for tabs that don't have the content script running
-                console.log(`Error sending message to tab ${tab.id}: ${error.message}`);
-            }
-        }
+    // Toggle switch functionality
+    enableDisplay.addEventListener('change', (e) => {
+        // Just update the UI, actual save happens with save button
+        // This matches the behavior in the screenshot
     });
 
     // Save settings
@@ -93,27 +62,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             // Save to storage
-            await chrome.storage.sync.set({ viewportSettings: newSettings });
-
-            // Notify all content scripts in all tabs
-            const tabs = await chrome.tabs.query({});
-            
-            for (const tab of tabs) {
-                try {
-                    if (tab.id) {
-                        chrome.tabs.sendMessage(tab.id, {
-                            type: 'settingsUpdated',
-                            settings: newSettings
-                        }).catch(err => {
-                            // Ignore errors for tabs that don't have the content script running
-                            console.log(`Could not send message to tab ${tab.id}`);
-                        });
-                    }
-                } catch (error) {
-                    // Ignore errors for tabs that don't have the content script running
-                    console.log(`Error sending message to tab ${tab.id}: ${error.message}`);
-                }
-            }
+            await chrome.storage.sync.set({ 
+                viewportSettings: newSettings,
+                // Add a timestamp to detect changes
+                settingsUpdatedAt: Date.now()
+            });
 
             // Visual feedback
             saveButton.textContent = 'Saved!';

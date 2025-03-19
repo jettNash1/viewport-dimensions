@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Viewport Dimensions",
-  "version": "1.1",
+  "version": "2.0",
   "description": "Display viewport dimensions in real-time as you resize the browser window",
   "permissions": ["storage", "tabs"],
   "action": {

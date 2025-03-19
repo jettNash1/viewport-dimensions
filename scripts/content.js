@@ -9,18 +9,16 @@ class ViewportDisplay {
             bgColor: '#000000',
             bgOpacity: 0.7,
             alwaysShow: false,
-            hideAfter: 1000
+            hideAfter: 10000
         };
         this.hideTimeout = null;
+        this.pollingInterval = null;
         this.init();
     }
 
     async init() {
-        // Make sure to wait for DOM to be fully loaded
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                this.initialize();
-            });
+            document.addEventListener('DOMContentLoaded', () => this.initialize());
         } else {
             this.initialize();
         }
@@ -31,13 +29,73 @@ class ViewportDisplay {
         this.createContainer();
         this.setupResizeObserver();
         this.updateDimensions();
+        this.applyVisibility();
+        this.startPolling();
+    }
+
+    startPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+        }
+
+        this.pollingInterval = setInterval(() => {
+            this.checkForSettingsUpdates();
+        }, 500);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                this.checkForSettingsUpdates();
+            }
+        });
+
+        window.addEventListener('focus', () => {
+            this.checkForSettingsUpdates();
+        });
+    }
+
+    async checkForSettingsUpdates() {
+        try {
+            const result = await chrome.storage.sync.get('viewportSettings');
+            if (result.viewportSettings) {
+                const newSettings = JSON.stringify(result.viewportSettings);
+                const oldSettings = JSON.stringify(this.settings);
+                
+                if (newSettings !== oldSettings) {
+                    console.log('New settings detected:', result.viewportSettings);
+                    this.settings = result.viewportSettings;
+                    
+                    // Recreate the container to ensure clean styling
+                    this.recreateContainer();
+                }
+            }
+        } catch (error) {
+            console.error('Error checking for settings updates:', error);
+        }
+    }
+
+    recreateContainer() {
+        if (this.container) {
+            this.container.remove();
+        }
+        this.createContainer();
+        this.updateDimensions();
+        this.applyVisibility();
+    }
+
+    applyVisibility() {
+        if (!this.container) return;
         
-        // Show immediately if alwaysShow is enabled
+        // Handle enabled/disabled state
+        this.container.style.display = this.settings.enabled ? 'flex' : 'none';
+        if (!this.settings.enabled) return;
+        
+        // Handle always show vs timeout behavior
         if (this.settings.alwaysShow) {
             this.container.style.opacity = '1';
+            clearTimeout(this.hideTimeout);
         } else {
-            // Show for initial period then hide
             this.container.style.opacity = '1';
+            clearTimeout(this.hideTimeout);
             this.hideTimeout = setTimeout(() => {
                 if (!this.settings.alwaysShow) {
                     this.container.style.opacity = '0';
@@ -50,7 +108,7 @@ class ViewportDisplay {
         try {
             const result = await chrome.storage.sync.get('viewportSettings');
             if (result.viewportSettings) {
-                this.settings = { ...this.settings, ...result.viewportSettings };
+                this.settings = result.viewportSettings;
             }
         } catch (error) {
             console.error('Error loading settings:', error);
@@ -58,58 +116,85 @@ class ViewportDisplay {
     }
 
     createContainer() {
-        // Remove any existing container to avoid duplicates
+        // Remove any existing container first
         const existingContainer = document.getElementById('viewport-dimensions-display');
         if (existingContainer) {
             existingContainer.remove();
         }
         
+        // Create a fresh container
         this.container = document.createElement('div');
         this.container.id = 'viewport-dimensions-display';
-        this.updateContainerStyles();
-        document.body.appendChild(this.container);
-    }
-
-    updateContainerStyles() {
-        const styles = {
+        
+        // Apply base styles that don't change
+        const baseStyles = {
             position: 'fixed',
             padding: '8px 12px',
             borderRadius: '4px',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             zIndex: '9999999',
             transition: 'opacity 0.3s ease',
-            color: this.settings.textColor,
-            fontSize: this.getFontSize(),
-            opacity: this.settings.enabled ? '1' : '0',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
         };
-
-        // Set background color with opacity
-        const hexOpacity = Math.round(this.settings.bgOpacity * 255).toString(16).padStart(2, '0');
-        styles.backgroundColor = `${this.settings.bgColor}${hexOpacity}`;
-
-        // Position styles
+        
+        // Apply all base styles
+        Object.assign(this.container.style, baseStyles);
+        
+        // Apply position-specific styles (separate from updateContainerStyles for clarity)
+        this.applyPositionStyles();
+        
+        // Apply visual styling (colors, fonts)
+        this.applyVisualStyles();
+        
+        // Add to document
+        document.body.appendChild(this.container);
+    }
+    
+    applyPositionStyles() {
+        // Reset all position properties first
+        this.container.style.top = 'auto';
+        this.container.style.right = 'auto';
+        this.container.style.bottom = 'auto';
+        this.container.style.left = 'auto';
+        
+        // Apply only the necessary position properties
         switch (this.settings.position) {
             case 'top-left':
-                styles.top = '16px';
-                styles.left = '16px';
+                this.container.style.top = '16px';
+                this.container.style.left = '16px';
                 break;
+                
             case 'top-right':
-                styles.top = '16px';
-                styles.right = '16px';
+                this.container.style.top = '16px';
+                this.container.style.right = '16px';
                 break;
+                
             case 'bottom-left':
-                styles.bottom = '16px';
-                styles.left = '16px';
+                this.container.style.bottom = '16px';
+                this.container.style.left = '16px';
                 break;
+                
             case 'bottom-right':
             default:
-                styles.bottom = '16px';
-                styles.right = '16px';
+                this.container.style.bottom = '16px';
+                this.container.style.right = '16px';
                 break;
         }
-
-        Object.assign(this.container.style, styles);
+    }
+    
+    applyVisualStyles() {
+        // Apply color and font settings
+        this.container.style.color = this.settings.textColor;
+        this.container.style.fontSize = this.getFontSize();
+        
+        // Apply background color with opacity
+        const hexOpacity = Math.round(this.settings.bgOpacity * 255).toString(16).padStart(2, '0');
+        this.container.style.backgroundColor = `${this.settings.bgColor}${hexOpacity}`;
     }
 
     getFontSize() {
@@ -125,7 +210,7 @@ class ViewportDisplay {
         window.addEventListener('resize', () => {
             this.updateDimensions();
             
-            if (!this.settings.alwaysShow) {
+            if (!this.settings.alwaysShow && this.settings.enabled) {
                 clearTimeout(this.hideTimeout);
                 this.container.style.opacity = '1';
                 
@@ -139,6 +224,8 @@ class ViewportDisplay {
     }
 
     updateDimensions() {
+        if (!this.container) return;
+        
         const width = Math.round(window.innerWidth);
         const height = Math.round(window.innerHeight);
         this.container.textContent = `${width}px × ${height}px`;
@@ -148,18 +235,15 @@ class ViewportDisplay {
 // Initialize the viewport display
 const viewportDisplay = new ViewportDisplay();
 
-// Listen for settings updates from the popup
+// Listen for settings updates as a backup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'settingsUpdated') {
-        viewportDisplay.settings = { ...viewportDisplay.settings, ...message.settings };
-        viewportDisplay.updateContainerStyles();
-        viewportDisplay.updateDimensions();
+        viewportDisplay.settings = message.settings;
+        viewportDisplay.recreateContainer();
         
-        if (viewportDisplay.settings.alwaysShow) {
-            viewportDisplay.container.style.opacity = '1';
+        if (sendResponse) {
+            sendResponse({ success: true });
         }
-        
-        sendResponse({ success: true });
-        return true; // Indicate we'll respond asynchronously
+        return true;
     }
 }); 
