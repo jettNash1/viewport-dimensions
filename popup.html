@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewport Dimensions</title>
+    <style>
+        body {
+            width: 300px;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        select, input {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        .save-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .save-btn:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0;">Viewport Dimensions</h2>
+            <label class="switch">
+                <input type="checkbox" id="enableDisplay" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="settings-group">
+            <h3 style="margin: 0 0 8px 0;">Display Settings</h3>
+            <div class="setting-row">
+                <label for="position">Position:</label>
+                <select id="position">
+                    <option value="bottom-right">Bottom Right</option>
+                    <option value="bottom-left">Bottom Left</option>
+                    <option value="top-right">Top Right</option>
+                    <option value="top-left">Top Left</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label for="fontSize">Font Size:</label>
+                <select id="fontSize">
+                    <option value="small">Small</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="large">Large</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label for="textColor">Text Color:</label>
+                <input type="color" id="textColor" value="#FFFFFF">
+            </div>
+            <div class="setting-row">
+                <label for="bgColor">Background Color:</label>
+                <input type="color" id="bgColor" value="#000000">
+            </div>
+            <div class="setting-row">
+                <label for="bgOpacity">Background Opacity:</label>
+                <input type="range" id="bgOpacity" min="0" max="1" step="0.1" value="0.7">
+            </div>
+            <div class="setting-row">
+                <label for="alwaysShow">Always Show:</label>
+                <label class="switch">
+                    <input type="checkbox" id="alwaysShow">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <label for="hideAfter">Hide After (ms):</label>
+                <input type="number" id="hideAfter" value="1000" min="0" step="100">
+            </div>
+        </div>
+
+        <button class="save-btn" id="saveSettings">Save Settings</button>
+    </div>
+    <script src="scripts/popup.js"></script>
+</body>
+</html> 
